@@ -1,7 +1,7 @@
 import { useNuiEvent } from '../../../hooks/useNuiEvent';
 import { Box, createStyles, Flex, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { ContextMenuProps } from '../../../typings';
+import { ContextMenuPosition, ContextMenuProps } from '../../../typings';
 import ContextButton from './components/ContextButton';
 import { fetchNui } from '../../../utils/fetchNui';
 import ReactMarkdown from 'react-markdown';
@@ -13,11 +13,16 @@ const openMenu = (id: string | undefined) => {
   fetchNui<ContextMenuProps>('openContext', { id: id, back: true });
 };
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles((theme, params: {position?: ContextMenuPosition}) => ({
   container: {
     position: 'absolute',
-    top: '15%',
-    right: '25%',
+    marginTop: params.position === 'top-left' || params.position === 'top-right' ? 20 : 0,
+    marginLeft: params.position === 'top-left' || params.position === 'bottom-left' ? 20 : 0,
+    marginRight: params.position === 'top-right' || params.position === 'bottom-right' ? 5 : 0,
+    marginBottom: params.position === 'bottom-left' || params.position === 'bottom-right' ? 60 : 0,
+    right: params.position === 'top-right' || params.position === 'bottom-right' ? 20 : undefined,
+    left: params.position === 'bottom-left' ? 20 : undefined,
+    bottom: params.position === 'bottom-left' || params.position === 'bottom-right' ? 1 : undefined,
     width: 320,
     height: 580,
   },
@@ -47,12 +52,13 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const ContextMenu: React.FC = () => {
-  const { classes } = useStyles();
-  const [visible, setVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuProps>({
+    position: 'top-left',
     title: '',
     options: { '': { description: '', metadata: [] } },
   });
+  const { classes } = useStyles({position: contextMenu.position});
+  const [visible, setVisible] = useState(false);
 
   const closeContext = () => {
     if (contextMenu.canClose === false) return;
@@ -80,6 +86,7 @@ const ContextMenu: React.FC = () => {
       setVisible(false);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    if (!data.position) data.position = 'top-left';
     setContextMenu(data);
     setVisible(true);
   });
