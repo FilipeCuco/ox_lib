@@ -8,6 +8,12 @@ export const debugContext = () => {
       data: {
         title: 'Vehicle garage',
         options: [
+          {
+            title: 'Search',
+            type: "search", 
+            placeholder: "Search...",
+            icon: 'magnifying-glass',
+          },
           { title: 'Empty button' },
           {
             title: 'Karin Kuruma',

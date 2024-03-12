@@ -4,6 +4,8 @@ import { IconAnimation } from '../components/LibIcon';
 export type ContextMenuPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export interface Option {
+  type?: string;
+  placeholder?: string;
   menu?: string;
   title?: string;
   description?: string;

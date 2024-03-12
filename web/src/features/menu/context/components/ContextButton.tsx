@@ -6,6 +6,7 @@ import { isIconUrl } from '../../../../utils/isIconUrl';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import MarkdownComponents from '../../../../config/MarkdownComponents';
 import LibIcon from '../../../../components/LibIcon';
+import SearchInput from '../SearchInput';
 
 const openMenu = (id: string | undefined) => {
   fetchNui<ContextMenuProps>('openContext', { id: id, back: false });
@@ -78,7 +79,9 @@ const useStyles = createStyles((theme, params: { disabled?: boolean; readOnly?: 
 
 const ContextButton: React.FC<{
   option: [string, Option];
-}> = ({ option }) => {
+  handleChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  search?: string;
+}> = ({ option, handleChange, search }) => {
   const button = option[1];
   const buttonKey = option[0];
   const { classes } = useStyles({ disabled: button.disabled, readOnly: button.readOnly });
@@ -93,12 +96,11 @@ const ContextButton: React.FC<{
         <HoverCard.Target>
           <Button
             classNames={{ inner: classes.inner, label: classes.label, root: classes.button }}
-            onClick={() =>
-              !button.disabled && !button.readOnly
-                ? button.menu
-                  ? openMenu(button.menu)
-                  : clickContext(buttonKey)
-                : null
+            onClick={() => {
+              if (button.type === 'search') 
+                return;
+                !button.disabled && !button.readOnly ? button.menu ? openMenu(button.menu) : clickContext(buttonKey) : null
+              }
             }
             variant="default"
             disabled={button.disabled}
@@ -122,9 +124,21 @@ const ContextButton: React.FC<{
                         )}
                       </Stack>
                     )}
-                    <Text className={classes.buttonTitleText}>
-                      <ReactMarkdown components={MarkdownComponents}>{button.title || buttonKey}</ReactMarkdown>
-                    </Text>
+                    <>
+                      {!button.title && button.type !== "search" && (
+                        <Text className={classes.buttonTitleText}>
+                          <ReactMarkdown components={MarkdownComponents}>{buttonKey}</ReactMarkdown>
+                        </Text>
+                      )}
+                      {button.type === "search" && handleChange && search !== undefined ? 
+                        <SearchInput option={option} handleChange={handleChange} search={search}/> :
+                        button.title && (
+                          <Text className={classes.buttonTitleText}>
+                            <ReactMarkdown components={MarkdownComponents}>{button.title}</ReactMarkdown>
+                          </Text>
+                        )
+                      }
+                    </>
                   </Group>
                 )}
                 {button.description && (
