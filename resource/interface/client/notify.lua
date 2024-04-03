@@ -14,30 +14,18 @@
 ---@field iconAnimation? IconAnimationType;
 ---@field iconColor? string;
 ---@field alignIcon? 'top' | 'center';
----@field sound? {bank?: string, set: string, name: string}
-
-local enableSound = GetConvar('ox:enableSound', 'true') == 'true'
 
 ---`client`
 ---@param data NotifyProps
 ---@diagnostic disable-next-line: duplicate-set-field
 function lib.notify(data)
+    local sound = settings.notification_audio and data.sound
+    data.sound = nil
+
     SendNUIMessage({
         action = 'notify',
         data = data
     })
-    if not enableSound then return end
-    if data.sound then
-        if data.sound?.bank then
-            lib.requestAudioBank(data.sound.bank)
-        end
-        local soundId = GetSoundId()
-        PlaySoundFrontend(soundId, data.sound.name, data.sound.set, true)
-        ReleaseSoundId(soundId)
-        if data.sound?.bank then
-            ReleaseNamedScriptAudioBank(data.sound.bank)
-        end
-    end
 end
 
 ---@class DefaultNotifyProps
