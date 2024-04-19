@@ -10,10 +10,13 @@
 ---@field position? NotificationPosition
 ---@field type? NotificationType
 ---@field style? { [string]: any }
----@field icon? string | {[1]: IconProp, [2]: string};
----@field iconAnimation? IconAnimationType;
----@field iconColor? string;
----@field alignIcon? 'top' | 'center';
+---@field icon? string | { [1]: IconProp, [2]: string }
+---@field iconAnimation? IconAnimationType
+---@field iconColor? string
+---@field alignIcon? 'top' | 'center'
+---@field sound? { bank?: string, set: string, name: string }
+
+local settings = require 'resource.settings'
 
 ---`client`
 ---@param data NotifyProps
@@ -26,6 +29,16 @@ function lib.notify(data)
         action = 'notify',
         data = data
     })
+
+    if not sound then return end
+
+    if sound.bank then lib.requestAudioBank(sound.bank) end
+
+    local soundId = GetSoundId()
+    PlaySoundFrontend(soundId, sound.name, sound.set, true)
+    ReleaseSoundId(soundId)
+
+    if sound.bank then ReleaseNamedScriptAudioBank(sound.bank) end
 end
 
 ---@class DefaultNotifyProps
