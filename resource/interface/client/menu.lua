@@ -108,6 +108,19 @@ function lib.setMenuOptions(id, options, index)
         if not options[1] then error('Invalid override format used, expected table of options.') end
         registeredMenus[id].options = options
     end
+    if id == openMenu.id then
+        local menu = registeredMenus[id]
+        openMenu = menu
+        SendNUIMessage({
+            action = 'updateMenu',
+            data = {
+                position = menu.position,
+                canClose = menu.canClose,
+                title = menu.title,
+                items = menu.options
+            }
+        })
+    end
 end
 
 ---@return string?
