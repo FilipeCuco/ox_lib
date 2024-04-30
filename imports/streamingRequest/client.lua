@@ -22,5 +22,3 @@ function lib.streamingRequest(request, hasLoaded, assetType, asset, timeout, ...
 end
 
 return lib.streamingRequest
-
-return lib.streamingRequest
