@@ -19,13 +19,12 @@ const useStyles = createStyles((theme) => ({
   sector: {
     fill: theme.colors.dark[6],
     color: theme.colors.dark[0],
-    stroke: '#2f3137',
+
     '&:hover': {
-      stroke: '#bfbfbf',
       fill: theme.fn.primaryColor(),
+      cursor: 'pointer',
       '> g > text, > g > svg > path': {
         fill: '#fff',
-        strokeWidth: 0,
       },
     },
     '> g > text': {
@@ -42,6 +41,7 @@ const useStyles = createStyles((theme) => ({
     stroke: theme.colors.dark[6],
     strokeWidth: 4,
     '&:hover': {
+      cursor: 'pointer',
       fill: theme.colors[theme.primaryColor][theme.fn.primaryShade() - 1],
     },
   },
@@ -57,8 +57,13 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-// Utility to split text into lines based on maximum character length
-const splitTextIntoLines = (text: string, maxCharPerLine: number): string[] => {
+const calculateFontSize = (text: string): number => {
+  if (text.length > 20) return 10;
+  if (text.length > 15) return 12;
+  return 13;
+};
+
+const splitTextIntoLines = (text: string, maxCharPerLine: number = 15): string[] => {
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = words[0];
@@ -75,13 +80,6 @@ const splitTextIntoLines = (text: string, maxCharPerLine: number): string[] => {
   return lines;
 };
 
-// Function to determine the Y offset for icons based on whether the text wraps
-const calculateIconYOffset = (label: string, maxCharPerLine: number): number => {
-  const lines = splitTextIntoLines(label, maxCharPerLine);
-  // Adjust the Y offset based on the number of lines
-  return lines.length > 3 ? 3 : 0;
-};
-
 const PAGE_ITEMS = 6;
 
 const degToRad = (deg: number) => deg * (Math.PI / 180);
@@ -89,13 +87,7 @@ const degToRad = (deg: number) => deg * (Math.PI / 180);
 const RadialMenu: React.FC = () => {
   const { classes } = useStyles();
   const { locale } = useLocales();
-  const baseDimension = 350;
-  const scale = 1.1025;
-  const newDimension = baseDimension * scale;
-
-  const originalRadius = 175;
-  const scaledRadius = originalRadius * scale;
-  const radius = scaledRadius * 0.65 - 1; // Assuming 'gap' is 1
+  const newDimension = 350 * 1.1025;
   const [visible, setVisible] = useState(false);
   const [menuItems, setMenuItems] = useState<RadialMenuItem[]>([]);
   const [menu, setMenu] = useState<{ items: RadialMenuItem[]; sub?: boolean; page: number }>({
@@ -153,76 +145,83 @@ const RadialMenu: React.FC = () => {
         }}
       >
         <ScaleFade visible={visible}>
-          
-          <svg width={`${newDimension}px`} height={`${newDimension}px`} viewBox="0 0 350 350" transform="rotate(90)">
-            {/*Fixed issues with background circle extending the circle when there's less than 3 items*/}
+          <svg
+            style={{ overflow: 'visible' }}
+            width={`${newDimension}px`}
+            height={`${newDimension}px`}
+            viewBox="0 0 350 350"
+            transform="rotate(90)"
+          >
+            {/* Fixed issues with background circle extending the circle when there's less than 3 items */}
             <g transform="translate(175, 175)">
               <circle r={175} className={classes.backgroundCircle} />
             </g>
             {menuItems.map((item, index) => {
-
               const pieAngle = 360 / (menuItems.length < 3 ? 3 : menuItems.length);
               const angle = degToRad(pieAngle / 2 + 90);
               const gap = 1;
               const radius = 175 * 0.65 - gap;
               const sinAngle = Math.sin(angle);
               const cosAngle = Math.cos(angle);
-              const iconYOffset = calculateIconYOffset(item.label, 15); // Calculate Y offset based on text wrapping
+              const iconYOffset = splitTextIntoLines(item.label, 15).length > 3 ? 3 : 0;
               const iconX = 175 + sinAngle * radius;
               const iconY = 175 + cosAngle * radius + iconYOffset; // Apply the Y offset to iconY
               const iconWidth = Math.min(Math.max(item.iconWidth || 50, 0), 100);
               const iconHeight = Math.min(Math.max(item.iconHeight || 50, 0), 100);
 
-                return (
-                  <>
-                    <g
-                      transform={`rotate(-${index * pieAngle} 175 175) translate(${sinAngle * gap}, ${cosAngle * gap})`}
-                      className={classes.sector}
-                      onClick={async () => {
-                        const clickIndex =
-                          menu.page === 1 ? index : PAGE_ITEMS * (menu.page - 1) - (menu.page - 1) + index;
-                        if (!item.isMore) fetchNui('radialClick', clickIndex);
-                        else {
-                          await changePage(true);
-                        }
-                      }}
-                    >
-                      <path
-                        d={`M175.01,175.01 l${175 - gap},0 A175.01,175.01 0 0,0 ${
-                          175 + (175 - gap) * Math.cos(-degToRad(pieAngle))
-                        }, ${175 + (175 - gap) * Math.sin(-degToRad(pieAngle))} z`}
+              return (
+                <g
+                  transform={`rotate(-${index * pieAngle} 175 175) translate(${sinAngle * gap}, ${cosAngle * gap})`}
+                  className={classes.sector}
+                  onClick={async () => {
+                    const clickIndex = menu.page === 1 ? index : PAGE_ITEMS * (menu.page - 1) - (menu.page - 1) + index;
+                    if (!item.isMore) fetchNui('radialClick', clickIndex);
+                    else {
+                      await changePage(true);
+                    }
+                  }}
+                >
+                  <path
+                    d={`M175.01,175.01 l${175 - gap},0 A175.01,175.01 0 0,0 ${
+                      175 + (175 - gap) * Math.cos(-degToRad(pieAngle))
+                    }, ${175 + (175 - gap) * Math.sin(-degToRad(pieAngle))} z`}
+                  />
+                  <g transform={`rotate(${index * pieAngle - 90} ${iconX} ${iconY})`} pointerEvents="none">
+                    {typeof item.icon === 'string' && isIconUrl(item.icon) ? (
+                      <image
+                        href={item.icon}
+                        width={iconWidth}
+                        height={iconHeight}
+                        x={iconX - iconWidth / 2}
+                        y={iconY - iconHeight / 2 - iconHeight / 4}
                       />
-                    <g transform={`rotate(${index * pieAngle - 90} ${iconX} ${iconY})`} pointerEvents="none">
-                      {/* Conditional rendering based on the type of icon */}
-                      {typeof item.icon === 'string' && isIconUrl(item.icon) ? (
-                        <image
-                          href={item.icon}
-                          width={iconWidth}
-                          height={iconHeight}
-                          x={iconX - iconWidth / 2}
-                          y={iconY - iconHeight / 2 - iconHeight / 4}
-                        />
-                      ) : (
-                        <LibIcon x={iconX - 14.5} y={iconY - 17.5} icon={item.icon as IconProp} width={30} height={30} fixedWidth/>
-                      )}
-                      <text
-                        x={iconX}
-                        y={iconY + (splitTextIntoLines(item.label, 15).length > 2 ? 15 : 28)}
-                        fill="#fff"
-                        textAnchor="middle"
-                        fontSize="12"
-                        pointerEvents="none"
-                        lengthAdjust="spacingAndGlyphs"
-                      >
-                        {splitTextIntoLines(item.label, 15).map((line, index) => (
-                          <tspan x={iconX} dy={index === 0 ? 0 : '1.2em'} key={index}>
-                            {line}
-                          </tspan>
-                        ))}
-                      </text>
-                    </g>
+                    ) : (
+                      <LibIcon
+                        x={iconX - 14.5}
+                        y={iconY - 17.5}
+                        icon={item.icon as IconProp}
+                        width={30}
+                        height={30}
+                        fixedWidth
+                      />
+                    )}
+                    <text
+                      x={iconX}
+                      y={iconY + (splitTextIntoLines(item.label, 15).length > 2 ? 15 : 28)}
+                      fill="#fff"
+                      textAnchor="middle"
+                      fontSize={calculateFontSize(item.label)}
+                      pointerEvents="none"
+                      lengthAdjust="spacingAndGlyphs"
+                    >
+                      {splitTextIntoLines(item.label, 15).map((line, index) => (
+                        <tspan x={iconX} dy={index === 0 ? 0 : '1.2em'} key={index}>
+                          {line}
+                        </tspan>
+                      ))}
+                    </text>
                   </g>
-                </>
+                </g>
               );
             })}
             <g
