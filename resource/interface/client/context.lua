@@ -1,6 +1,8 @@
 local contextMenus = {}
 local openContextMenu = nil
 
+---@alias ContextMenuPosition 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
 ---@class ContextMenuItem
 ---@field title? string
 ---@field menu? string
@@ -24,6 +26,7 @@ local openContextMenu = nil
 ---@class ContextMenuProps
 ---@field id string
 ---@field title string
+---@field position? MenuPosition
 ---@field menu? string
 ---@field onExit? fun()
 ---@field onBack? fun()
@@ -56,6 +59,7 @@ function lib.showContext(id)
     SendNuiMessage(json.encode({
         action = 'showContext',
         data = {
+            position = data.position,
             title = data.title,
             canClose = data.canClose,
             menu = data.menu,
@@ -112,6 +116,3 @@ RegisterNUICallback('clickContext', function(id, cb)
 end)
 
 RegisterNUICallback('closeContext', closeContext)
-
-
-

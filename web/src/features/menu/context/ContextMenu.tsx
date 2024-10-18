@@ -1,7 +1,7 @@
 import { useNuiEvent } from '../../../hooks/useNuiEvent';
 import { Box, createStyles, Flex, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { ContextMenuProps } from '../../../typings';
+import { ContextMenuPosition, ContextMenuProps } from '../../../typings';
 import ContextButton from './components/ContextButton';
 import { fetchNui } from '../../../utils/fetchNui';
 import ReactMarkdown from 'react-markdown';
@@ -13,11 +13,16 @@ const openMenu = (id: string | undefined) => {
   fetchNui<ContextMenuProps>('openContext', { id: id, back: true });
 };
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles((theme, params: {position?: ContextMenuPosition}) => ({
   container: {
     position: 'absolute',
-    top: '15%',
-    right: '25%',
+    marginTop: params.position === 'top-left' || params.position === 'top-right' ? 20 : 0,
+    marginLeft: params.position === 'top-left' || params.position === 'bottom-left' ? 20 : 0,
+    marginRight: params.position === 'top-right' || params.position === 'bottom-right' ? 5 : 0,
+    marginBottom: params.position === 'bottom-left' || params.position === 'bottom-right' ? 60 : 0,
+    right: params.position === 'top-right' || params.position === 'bottom-right' ? 20 : undefined,
+    left: params.position === 'bottom-left' ? 20 : undefined,
+    bottom: params.position === 'bottom-left' || params.position === 'bottom-right' ? 1 : undefined,
     width: 320,
     height: 580,
   },
@@ -47,17 +52,41 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const ContextMenu: React.FC = () => {
-  const { classes } = useStyles();
-  const [visible, setVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuProps>({
+    position: 'top-left',
     title: '',
     options: { '': { description: '', metadata: [] } },
   });
+  const { classes } = useStyles({position: contextMenu.position});
+  const [visible, setVisible] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
+  const filteredOptions = Object.entries(contextMenu.options).filter(
+    ([key, option]) => {
+      if (option.type === 'search' || search === '') {
+        return true;
+      } else {
+        let match = false;
+        if (option.title) {
+          match = option.title.toLowerCase().includes(search.toLowerCase());
+        }
+        if (option.description) {
+          match = match || option.description.toLowerCase().includes(search.toLowerCase());
+        }
+        return match;
+      }
+    }
+  );
 
   const closeContext = () => {
     if (contextMenu.canClose === false) return;
     setVisible(false);
     fetchNui('closeContext');
+    setSearch('');
   };
 
   // Hides the context menu on ESC
@@ -80,6 +109,7 @@ const ContextMenu: React.FC = () => {
       setVisible(false);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    if (!data.position) data.position = 'top-left';
     setContextMenu(data);
     setVisible(true);
   });
@@ -99,11 +129,19 @@ const ContextMenu: React.FC = () => {
           <HeaderButton icon="xmark" canClose={contextMenu.canClose} iconSize={18} handleClick={closeContext} />
         </Flex>
         <Box className={classes.buttonsContainer}>
-          <Stack className={classes.buttonsFlexWrapper}>
-            {Object.entries(contextMenu.options).map((option, index) => (
-              <ContextButton option={option} key={`context-item-${index}`} />
-            ))}
-          </Stack>
+        <Stack className={classes.buttonsFlexWrapper}>
+          {filteredOptions.map((option, index) => {
+            const isSearch = option[1].type === 'search';
+            return (
+              <ContextButton 
+                option={option} 
+                key={`context-item-${index}`} 
+                handleChange={isSearch ? handleChange : undefined} 
+                search={isSearch ? search : undefined} 
+              />
+            );
+          })}
+        </Stack>
         </Box>
       </ScaleFade>
     </Box>
